@@ -13,7 +13,7 @@ public:
 	void update();
 	void draw();
 
-    void loadImage(const string &path, const string &parent);
+    void loadImage(const string &path, const int index);
     
 	void keyPressed(int key);
 	void keyReleased(int key);
@@ -29,6 +29,7 @@ public:
     
     std::vector<ofImage> mImages;
     int mOffset;
+    float mFrameRate;
     
     ofFbo mFbo;
     

@@ -7,6 +7,9 @@ void ofApp::setup()
     ofEnableAntiAliasing();
     
     mFbo.allocate(static_cast<int>(MAX_WIDTH), static_cast<int>(MAX_WIDTH), GL_RGBA, 4);
+    
+    mOffset = 0;
+    mFrameRate = 30.f;
 }
 
 //--------------------------------------------------------------
@@ -24,7 +27,7 @@ void ofApp::draw()
 }
 
 //--------------------------------------------------------------
-void ofApp::loadImage(const string &path, const string &parent)
+void ofApp::loadImage(const string &path, const int index)
 {
     ofFile _file(path);
     
@@ -38,16 +41,18 @@ void ofApp::loadImage(const string &path, const string &parent)
         
         auto &_files = _dir.getFiles();
         
-        mSpriteInfoJson["animations"][name_] = Json::objectValue;
-        mSpriteInfoJson["animations"][name_]["count"] = (int)_files.size();
-        mSpriteInfoJson["animations"][name_]["start"] = mOffset;
-        mSpriteInfoJson["animations"][name_]["end"] = mOffset + (int)_files.size();
+        mSpriteInfoJson["animations"][index] = Json::objectValue;
+        mSpriteInfoJson["animations"][index]["name"] = name_;
+        mSpriteInfoJson["animations"][index]["count"] = (int)_files.size();
+        mSpriteInfoJson["animations"][index]["start"] = mOffset;
+        mSpriteInfoJson["animations"][index]["end"] = mOffset + (int)_files.size();
+        mSpriteInfoJson["animations"][index]["duration"] = ((float)_files.size() / mFrameRate) * 1000.f;
         
         mOffset += ((int)_files.size() + 1);
         
         for (auto i = 0; i < _files.size(); ++i)
         {
-            loadImage(_files.at(i).getAbsolutePath(), name_);
+            loadImage(_files.at(i).getAbsolutePath(), index);
         }
     }
     else
@@ -67,7 +72,7 @@ void ofApp::keyPressed(int key)
         ofImage img_;
         mFbo.readToPixels(img_.getPixels());
         
-        auto filenamePrefix_ = ofGetTimestampString();
+        auto filenamePrefix_ = "export/" + ofGetTimestampString();
         img_.save(ofToDataPath(filenamePrefix_ + ".png"));
         
         mSpriteInfoJson.save(ofToDataPath(filenamePrefix_ + ".json"));
@@ -139,13 +144,18 @@ void ofApp::dragEvent(ofDragInfo dragInfo)
     mImages.clear();
     
     mSpriteInfoJson.clear();
-    mSpriteInfoJson["animations"] = Json::objectValue;
+    mSpriteInfoJson["animations"] = Json::arrayValue;
     mOffset = 0;
     
     for (auto i = 0; i < dragInfo.files.size(); ++i)
     {
-        loadImage(dragInfo.files.at(i), "");
+        loadImage(dragInfo.files.at(i), i);
     }
+    
+    mSpriteInfoJson["total"] = mSpriteInfoJson["animations"].size();
+    mSpriteInfoJson["frame_rate"] = mFrameRate;
+    mSpriteInfoJson["size"]["width"] = (int)MAX_WIDTH;
+    mSpriteInfoJson["size"]["height"] = (int)MAX_WIDTH;
 
     const auto numCells = std::ceil(std::sqrt(mImages.size()));
     const auto cellSize_ = MAX_WIDTH / numCells;
