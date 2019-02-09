@@ -8,6 +8,10 @@ void ofApp::setup()
     
     mFbo.allocate(static_cast<int>(MAX_WIDTH), static_cast<int>(MAX_WIDTH), GL_RGBA, 4);
     
+    mShader.load(ofToDataPath("shaders/sprite_animation"));
+//    mShader.linkProgram();
+//    mShader.bindDefaults();
+    
     mOffset = 0;
     mFrameRate = 30.f;
 }

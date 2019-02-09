@@ -32,6 +32,7 @@ public:
     float mFrameRate;
     
     ofFbo mFbo;
+    ofShader mShader;
     
     ofxJSONElement mSpriteInfoJson;
 };
