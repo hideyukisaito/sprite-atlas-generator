@@ -9,8 +9,6 @@ void ofApp::setup()
     mFbo.allocate(static_cast<int>(MAX_WIDTH), static_cast<int>(MAX_WIDTH), GL_RGBA, 4);
     
     mShader.load(ofToDataPath("shaders/sprite_animation"));
-//    mShader.linkProgram();
-//    mShader.bindDefaults();
     
     mOffset = 0;
     mFrameRate = 30.f;
@@ -33,37 +31,38 @@ void ofApp::draw()
 //--------------------------------------------------------------
 void ofApp::loadImage(const string &path, const int index)
 {
-    ofFile _file(path);
+    ofFile file_(path);
     
-    if (_file.isDirectory())
+    if (file_.isDirectory())
     {
-        const auto name_ = _file.getFileName();
+        const auto name_ = file_.getFileName();
         
-        ofDirectory _dir(_file.getAbsolutePath());
-        _dir.allowExt("png");
-        _dir.listDir();
+        ofDirectory dir_(file_.getAbsolutePath());
+        dir_.allowExt("png");
+        dir_.listDir();
         
-        auto &_files = _dir.getFiles();
+        auto &files_ = dir_.getFiles();
+        dir_.sort();
         
         mSpriteInfoJson["animations"][index] = Json::objectValue;
         mSpriteInfoJson["animations"][index]["name"] = name_;
-        mSpriteInfoJson["animations"][index]["count"] = (int)_files.size();
+        mSpriteInfoJson["animations"][index]["count"] = (int)files_.size();
         mSpriteInfoJson["animations"][index]["start"] = mOffset;
-        mSpriteInfoJson["animations"][index]["end"] = mOffset + (int)_files.size();
-        mSpriteInfoJson["animations"][index]["duration"] = ((float)_files.size() / mFrameRate) * 1000.f;
+        mSpriteInfoJson["animations"][index]["end"] = mOffset + (int)files_.size();
+        mSpriteInfoJson["animations"][index]["duration"] = ((float)files_.size() / mFrameRate) * 1000.f;
         
-        mOffset += ((int)_files.size() + 1);
+        mOffset += ((int)dir_.size() + 1);
         
-        for (auto i = 0; i < _files.size(); ++i)
+        for (auto i = 0; i < dir_.size(); ++i)
         {
-            loadImage(_files.at(i).getAbsolutePath(), index);
+            loadImage(files_.at(i).getAbsolutePath(), index);
         }
     }
     else
     {
         ofImage _image;
         _image.load(path);
-        
+        ofLog() << path;
         mImages.emplace_back(_image);
     }
 }
@@ -76,10 +75,12 @@ void ofApp::keyPressed(int key)
         ofImage img_;
         mFbo.readToPixels(img_.getPixels());
         
-        auto filenamePrefix_ = "export/" + ofGetTimestampString();
-        img_.save(ofToDataPath(filenamePrefix_ + ".png"));
+        auto timestamp_ = ofGetTimestampString();
+        auto prefix_ = "export/";
+        img_.save(ofToDataPath(prefix_ + timestamp_ + ".png"));
         
-        mSpriteInfoJson.save(ofToDataPath(filenamePrefix_ + ".json"));
+        mSpriteInfoJson["filename"] = timestamp_ + ".png";
+        mSpriteInfoJson.save(ofToDataPath(prefix_ + timestamp_ + ".json"));
     }
 }
 

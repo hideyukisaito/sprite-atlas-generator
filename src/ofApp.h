@@ -35,4 +35,18 @@ public:
     ofShader mShader;
     
     ofxJSONElement mSpriteInfoJson;
+    
+private:
+    
+    static bool compareFilename(const string &first, const string &second)
+    {
+        return filenameToInt(first) < filenameToInt(second);
+    }
+    
+    static int filenameToInt(const string &str)
+    {
+        int x = ofToInt(ofSplitString(str, ".").at(0));
+        ofLog() << ofSplitString(str, ".").at(0);
+        return ofToInt(ofSplitString(str, ".").at(0));
+    }
 };
