@@ -12,6 +12,7 @@ void ofApp::setup()
     
     mOffset = 0;
     mFrameRate = 30.f;
+	ofLogNotice(__FUNCSIG__) << "Start";
 }
 
 //--------------------------------------------------------------
@@ -141,6 +142,8 @@ void ofApp::gotMessage(ofMessage msg)
 //--------------------------------------------------------------
 void ofApp::dragEvent(ofDragInfo dragInfo)
 { 
+	ofLogNotice(__FUNCSIG__) << "dragEvent: files = " << dragInfo.files.size();
+
     if (0 > dragInfo.files.size())
     {
         return;
