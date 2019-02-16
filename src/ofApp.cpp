@@ -10,9 +10,12 @@ void ofApp::setup()
     
     mShader.load(ofToDataPath("shaders/sprite_animation"));
     
+    mSpriteInfoJson["animations"] = Json::arrayValue;
+    
     mOffset = 0;
     mFrameRate = 30.f;
-	ofLogNotice(__FUNCSIG__) << "Start";
+    
+    gui.setup();
 }
 
 //--------------------------------------------------------------
@@ -27,6 +30,25 @@ void ofApp::draw()
     ofClear(0);
     
     mFbo.draw((ofGetWidth() - DISPLAY_WIDTH) * 0.5, (ofGetHeight() - DISPLAY_WIDTH) * 0.5, DISPLAY_WIDTH, DISPLAY_WIDTH);
+    
+    gui.begin();
+    
+    for (auto i = 0; i < mAnimationProps.size(); ++i)
+    {
+        auto &props = mAnimationProps.at(i);
+        
+        ImGui::Text("Animation Name : %s", props.name.c_str());
+        
+        auto name_ = "Position " + ofToString(i);
+        ImGui::SliderFloat(name_.c_str(), &props.currentTime, 0.0f, props.duration);
+        
+        props.index = std::ceil(props.totalFrames * (props.currentTime / props.duration));
+        
+        name_ = "Index " + ofToString(i);
+        ImGui::SliderFloat(name_.c_str(), &props.index, 0.0f, props.totalFrames);
+    }
+    
+    gui.end();
 }
 
 //--------------------------------------------------------------
@@ -45,12 +67,20 @@ void ofApp::loadImage(const string &path, const int index)
         auto &files_ = dir_.getFiles();
         dir_.sort();
         
+        auto duration = ((float)files_.size() / mFrameRate) * 1000.f;
+        
         mSpriteInfoJson["animations"][index] = Json::objectValue;
         mSpriteInfoJson["animations"][index]["name"] = name_;
         mSpriteInfoJson["animations"][index]["count"] = (int)files_.size();
-        mSpriteInfoJson["animations"][index]["start"] = mOffset;
-        mSpriteInfoJson["animations"][index]["end"] = mOffset + (int)files_.size();
-        mSpriteInfoJson["animations"][index]["duration"] = ((float)files_.size() / mFrameRate) * 1000.f;
+        mSpriteInfoJson["animations"][index]["offset"] = mOffset;
+        mSpriteInfoJson["animations"][index]["duration"] = duration;
+        
+        auto props = AnimationProps();
+        props.currentTime = 0.f;
+        props.totalFrames = (float)files_.size();
+        props.duration = duration;
+        props.name = name_;
+        mAnimationProps.push_back(props);
         
         mOffset += ((int)dir_.size() + 1);
         
@@ -63,7 +93,7 @@ void ofApp::loadImage(const string &path, const int index)
     {
         ofImage _image;
         _image.load(path);
-        ofLog() << path;
+
         mImages.emplace_back(_image);
     }
 }
@@ -81,62 +111,8 @@ void ofApp::keyPressed(int key)
         img_.save(ofToDataPath(prefix_ + timestamp_ + ".png"));
         
         mSpriteInfoJson["filename"] = timestamp_ + ".png";
-        mSpriteInfoJson.save(ofToDataPath(prefix_ + timestamp_ + ".json"));
+        mSpriteInfoJson.save(ofToDataPath(prefix_ + timestamp_ + ".json"), true);
     }
-}
-
-//--------------------------------------------------------------
-void ofApp::keyReleased(int key)
-{
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mouseMoved(int x, int y )
-{
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mouseDragged(int x, int y, int button)
-{
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mousePressed(int x, int y, int button)
-{
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mouseReleased(int x, int y, int button)
-{
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mouseEntered(int x, int y)
-{
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mouseExited(int x, int y)
-{
-
-}
-
-//--------------------------------------------------------------
-void ofApp::windowResized(int w, int h)
-{
-
-}
-
-//--------------------------------------------------------------
-void ofApp::gotMessage(ofMessage msg)
-{
-
 }
 
 //--------------------------------------------------------------
@@ -150,9 +126,10 @@ void ofApp::dragEvent(ofDragInfo dragInfo)
     }
     
     mImages.clear();
+    mAnimationProps.clear();
     
-    mSpriteInfoJson.clear();
-    mSpriteInfoJson["animations"] = Json::arrayValue;
+    mSpriteInfoJson["animations"].clear();
+    
     mOffset = 0;
     
     for (auto i = 0; i < dragInfo.files.size(); ++i)
@@ -160,15 +137,16 @@ void ofApp::dragEvent(ofDragInfo dragInfo)
         loadImage(dragInfo.files.at(i), i);
     }
     
+    const auto numCells_ = std::ceil(std::sqrt(mImages.size()));
+    const auto cellSize_ = MAX_WIDTH / numCells_;
+    
     mSpriteInfoJson["total"] = mSpriteInfoJson["animations"].size();
     mSpriteInfoJson["frame_rate"] = mFrameRate;
+    mSpriteInfoJson["frame_count_per_side"] = numCells_;
+    mSpriteInfoJson["frame_size"]["width"] = cellSize_;
+    mSpriteInfoJson["frame_size"]["height"] = cellSize_;
     mSpriteInfoJson["size"]["width"] = (int)MAX_WIDTH;
     mSpriteInfoJson["size"]["height"] = (int)MAX_WIDTH;
-
-    const auto numCells = std::ceil(std::sqrt(mImages.size()));
-    const auto cellSize_ = MAX_WIDTH / numCells;
-    
-    ofLogNotice() << "numCells: " << numCells << ", cellSize: " << cellSize_;
     
     mFbo.begin();
     ofClear(0, 0, 0, 0);
@@ -184,8 +162,8 @@ void ofApp::dragEvent(ofDragInfo dragInfo)
             const auto w_ = image_.getWidth();
             const auto h_ = image_.getHeight();
             
-            const auto horizontalIndex_ = i % static_cast<int>(numCells);
-            const auto verticalIndex_ = static_cast<int>(std::floor(static_cast<double>(i) / numCells)) % static_cast<int>(numCells);
+            const auto horizontalIndex_ = i % static_cast<int>(numCells_);
+            const auto verticalIndex_ = static_cast<int>(std::floor(static_cast<double>(i) / numCells_)) % static_cast<int>(numCells_);
             
             auto ratio_ = cellSize_ / w_;
             
@@ -193,7 +171,6 @@ void ofApp::dragEvent(ofDragInfo dragInfo)
             image_.update();
             
 //            ofLogNotice(__PRETTY_FUNCTION__) << dragInfo.files.at(i);
-            ofLogNotice() << "x: " << image_.getWidth() << ", y: " << image_.getHeight();
             
             image_.draw(((cellSize_ - image_.getWidth()) * 0.5) + (cellSize_ * horizontalIndex_), ((cellSize_ - image_.getHeight()) * 0.5) + (cellSize_ * verticalIndex_));
 //                image_.draw(((cellSize_ - image_.getWidth()) * 0.5) + (cellSize_ * horizontalIndex_), (image_.getHeight() * verticalIndex_));
