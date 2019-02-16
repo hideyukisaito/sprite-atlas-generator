@@ -60,6 +60,7 @@ xcuserdata
 *.suo
 *.pdb
 *.ilk
+*.exp
 *.aps
 ipch/
 
@@ -90,6 +91,12 @@ addons/**/.DS_Store
 # Windows image file caches
 Thumbs.db
 .vs
+bin/*.exe
+bin/*.exp
+bin/*.ilk
+bin/*.lib
+bin/*.pdb
+
 # Folder config file
 Desktop.ini
 
