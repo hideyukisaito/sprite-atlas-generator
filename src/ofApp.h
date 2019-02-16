@@ -5,7 +5,7 @@
 #include "ofxImGui.h"
 
 #define MAX_WIDTH 4096.0
-#define DISPLAY_WIDTH 1024.0
+#define PREVIEW_SIZE 500.0
 #define CELL_COUNT 5
 
 struct AnimationProps
@@ -22,43 +22,32 @@ public:
 
 class ofApp : public ofBaseApp
 {
-public:
+private:
+
+	std::vector<ofImage> mImages;
+
+	int mOffset;
+	int mNumCells;
+	float mFrameRate;
+
+	ofFbo mFbo;
+	ofShader mShader;
+	ofPlanePrimitive mPlane;
+
+	ofxJSONElement mSpriteInfoJson;
+
+	ofxImGui::Gui gui;
+	std::vector<AnimationProps> mAnimationProps;
+
 	void setup();
 	void update();
 	void draw();
 
-    void loadImage(const string &path, const int index);
-    
-	void keyReleased(int key);
-    void dragEvent(ofDragInfo dragInfo);
-    
-    std::vector<ofImage> mImages;
-    int mOffset;
-    float mFrameRate;
-    
-    ofFbo mFbo;
-    ofShader mShader;
-    
-    ofxJSONElement mSpriteInfoJson;
-    
-    ofxImGui::Gui gui;
-    float mFloatValue;
-    std::vector<AnimationProps> mAnimationProps;
-    
-private:
+	void loadImagesFromDirectory(const string &path);
+	void createSpriteAtlas();
+	void exportResources();
+	void clear();
 
-	int mNumCells;
-	ofPlanePrimitive mPlane;
-    
-    static bool compareFilename(const string &first, const string &second)
-    {
-        return filenameToInt(first) < filenameToInt(second);
-    }
-    
-    static int filenameToInt(const string &str)
-    {
-        int x = ofToInt(ofSplitString(str, ".").at(0));
-        ofLog() << ofSplitString(str, ".").at(0);
-        return ofToInt(ofSplitString(str, ".").at(0));
-    }
+	void keyReleased(int key);
+	void dragEvent(ofDragInfo dragInfo);
 };
