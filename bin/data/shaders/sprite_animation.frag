@@ -1,13 +1,5 @@
 uniform sampler2D uTexture;
-uniform sampler2D uBgTexture;
 uniform vec4 uColor;
-uniform int uInvert;
-uniform int uEnableDot;
-
-uniform vec2 uCenter;
-uniform float uAngle;
-uniform float uScale;
-uniform vec2 tSize;
 
 varying vec2 texCoord;
 varying mat3 spriteMat;

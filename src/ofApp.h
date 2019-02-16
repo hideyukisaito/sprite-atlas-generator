@@ -2,9 +2,21 @@
 
 #include "ofMain.h"
 #include "ofxJSON.h"
+#include "ofxImGui.h"
 
 #define MAX_WIDTH 4096.0
 #define DISPLAY_WIDTH 1024.0
+
+struct AnimationProps
+{
+public:
+    float duration;
+    float currentTime;
+    float totalFrames;
+    float offset;
+    float index;
+    std::string name;
+};
 
 class ofApp : public ofBaseApp
 {
@@ -16,16 +28,7 @@ public:
     void loadImage(const string &path, const int index);
     
 	void keyPressed(int key);
-	void keyReleased(int key);
-	void mouseMoved(int x, int y );
-	void mouseDragged(int x, int y, int button);
-	void mousePressed(int x, int y, int button);
-	void mouseReleased(int x, int y, int button);
-	void mouseEntered(int x, int y);
-	void mouseExited(int x, int y);
-	void windowResized(int w, int h);
-	void dragEvent(ofDragInfo dragInfo);
-	void gotMessage(ofMessage msg);
+    void dragEvent(ofDragInfo dragInfo);
     
     std::vector<ofImage> mImages;
     int mOffset;
@@ -35,6 +38,10 @@ public:
     ofShader mShader;
     
     ofxJSONElement mSpriteInfoJson;
+    
+    ofxImGui::Gui gui;
+    float mFloatValue;
+    std::vector<AnimationProps> mAnimationProps;
     
 private:
     
