@@ -115,3 +115,5 @@ Desktop.ini
 
 bin/data/[0-9]./*
 bin/data/quadwarp.xml
+*.exe
+bin/imgui.ini
