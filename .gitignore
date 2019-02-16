@@ -89,6 +89,7 @@ addons/**/.DS_Store
 # Windows
 # Windows image file caches
 Thumbs.db
+.vs
 # Folder config file
 Desktop.ini
 

@@ -165,7 +165,7 @@ void ofApp::dragEvent(ofDragInfo dragInfo)
     const auto numCells = std::ceil(std::sqrt(mImages.size()));
     const auto cellSize_ = MAX_WIDTH / numCells;
     
-    ofLogNotice(__PRETTY_FUNCTION__) << "numCells: " << numCells << ", cellSize: " << cellSize_;
+    ofLogNotice() << "numCells: " << numCells << ", cellSize: " << cellSize_;
     
     mFbo.begin();
     ofClear(0, 0, 0, 0);
@@ -190,7 +190,7 @@ void ofApp::dragEvent(ofDragInfo dragInfo)
             image_.update();
             
 //            ofLogNotice(__PRETTY_FUNCTION__) << dragInfo.files.at(i);
-            ofLogNotice(__PRETTY_FUNCTION__) << "x: " << image_.getWidth() << ", y: " << image_.getHeight();
+            ofLogNotice() << "x: " << image_.getWidth() << ", y: " << image_.getHeight();
             
             image_.draw(((cellSize_ - image_.getWidth()) * 0.5) + (cellSize_ * horizontalIndex_), ((cellSize_ - image_.getHeight()) * 0.5) + (cellSize_ * verticalIndex_));
 //                image_.draw(((cellSize_ - image_.getWidth()) * 0.5) + (cellSize_ * horizontalIndex_), (image_.getHeight() * verticalIndex_));
