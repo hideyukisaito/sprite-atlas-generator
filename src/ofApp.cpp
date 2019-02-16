@@ -41,9 +41,9 @@ void ofApp::draw()
 		{
 			ofSetColor(255, 255);
 			ofDrawBitmapString(
-				"name : " + mAnimationProps[i].name, 
-				mPlane.getWidth() * (i % CELL_COUNT) + 20, 
-				mPlane.getHeight() * floor((float)i / (float)CELL_COUNT) + 30);
+				"name : " + mAnimationProps[i].name,
+				mPlane.getWidth() * (i % CELL_COUNT) + 20,
+				mPlane.getHeight() * std::floor((float)i / (float)CELL_COUNT) + 30);
 		}
 		ofPopStyle();
 
@@ -63,7 +63,7 @@ void ofApp::draw()
 			{
 				ofTranslate(
 					mPlane.getWidth() * (i % CELL_COUNT + 1) - mPlane.getWidth() * 0.5,
-					mPlane.getHeight() * floor((float)i / (float)CELL_COUNT) + mPlane.getHeight() * 0.5);
+					mPlane.getHeight() * std::floor((float)i / (float)CELL_COUNT) + mPlane.getHeight() * 0.5);
 
 				mPlane.draw();
 			}
@@ -98,6 +98,16 @@ void ofApp::draw()
     }
     
     gui.end();
+
+	ofPushStyle();
+	{
+		ofSetColor(100, 100);
+		ofDrawRectangle(1000, 0, 500, ofGetHeight());
+
+		ofSetColor(255, 255);
+		ofDrawBitmapString("Sprite Size : " + ofToString(MAX_WIDTH) + " x " + ofToString(MAX_WIDTH), 1020, 30);
+	}
+	ofPopStyle();
 }
 
 //--------------------------------------------------------------
@@ -134,7 +144,7 @@ void ofApp::loadImage(const string &path, const int index)
 		props.maxFrameCount = props.totalFrames;
         mAnimationProps.push_back(props);
         
-        mOffset += ((int)dir_.size() + 1);
+        mOffset += ((int)mSpriteInfoJson["animations"][index]["count"].asInt());
         
         for (auto i = 0; i < dir_.size(); ++i)
         {
@@ -174,7 +184,7 @@ void ofApp::keyReleased(int key)
 //--------------------------------------------------------------
 void ofApp::dragEvent(ofDragInfo dragInfo)
 { 
-	ofLogNotice(__FUNCSIG__) << "dragEvent: files = " << dragInfo.files.size();
+	ofLogNotice() << "dragEvent: files = " << dragInfo.files.size();
 
     if (0 > dragInfo.files.size())
     {
@@ -192,6 +202,13 @@ void ofApp::dragEvent(ofDragInfo dragInfo)
     {
         loadImage(dragInfo.files.at(i), i);
     }
+
+	/*for (auto i = 1; i < mSpriteInfoJson["animations"].size(); ++i)
+	{
+		mSpriteInfoJson["animations"][i]["offset"] =
+			mSpriteInfoJson["animations"][i - 1]["count"].asInt() +
+			mSpriteInfoJson["animations"][i - 1]["offset"].asInt();
+	}*/
     
 	mNumCells = (int)std::ceil(std::sqrt(mImages.size()));
     const auto cellSize_ = MAX_WIDTH / mNumCells;
@@ -213,24 +230,21 @@ void ofApp::dragEvent(ofDragInfo dragInfo)
     {
         image_ = mImages.at(i);
         
-        if (image_.isAllocated())
-        {
-            const auto w_ = image_.getWidth();
-            const auto h_ = image_.getHeight();
-            
-            const auto horizontalIndex_ = i % static_cast<int>(mNumCells);
-            const auto verticalIndex_ = static_cast<int>(std::floor(static_cast<double>(i) / mNumCells)) % static_cast<int>(mNumCells);
-            
-            auto ratio_ = cellSize_ / w_;
-            
-            image_.resize(cellSize_, h_ * ratio_);
-            image_.update();
-            
-//            ofLogNotice(__PRETTY_FUNCTION__) << dragInfo.files.at(i);
-            
-            image_.draw(((cellSize_ - image_.getWidth()) * 0.5) + (cellSize_ * horizontalIndex_), ((cellSize_ - image_.getHeight()) * 0.5) + (cellSize_ * verticalIndex_));
-//                image_.draw(((cellSize_ - image_.getWidth()) * 0.5) + (cellSize_ * horizontalIndex_), (image_.getHeight() * verticalIndex_));
-        }
+		const auto w_ = image_.getWidth();
+		const auto h_ = image_.getHeight();
+
+		const auto horizontalIndex_ = i % (int)mNumCells;
+		const auto verticalIndex_ = (int)std::floor((float)i / (float)mNumCells);
+
+		auto ratio_ = w_ < h_ ? cellSize_ / h_ : cellSize_ / w_;
+
+		image_.resize(w_ * ratio_, h_ * ratio_);
+		image_.update();
+
+		image_.draw(
+			((cellSize_ - image_.getWidth()) * 0.5) + (cellSize_ * horizontalIndex_),
+			((cellSize_ - image_.getHeight()) * 0.5) + (cellSize_ * verticalIndex_));
+		//image_.draw(((cellSize_ - image_.getWidth()) * 0.5) + (cellSize_ * horizontalIndex_), (image_.getHeight() * verticalIndex_));
     }
     
     mFbo.end();

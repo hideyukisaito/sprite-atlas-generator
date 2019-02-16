@@ -24,8 +24,8 @@ void main()
 	float totalDuration = totalTimeMillis * 0.001;
 	float currentTime = mod(time, totalDuration);
 
-	float index = min(ceil(totalFrameCount * (currentTime / totalDuration)), totalFrameCount);
-	index += frameOffset;
+	float ratio = currentTime / totalDuration;
+	float index = frameOffset + max(0.0, min(floor(totalFrameCount * ratio), totalFrameCount));
 
 	uv.x *= scale;
 	uv.y *= scale;
