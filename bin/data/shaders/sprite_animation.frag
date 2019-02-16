@@ -1,67 +1,37 @@
-uniform sampler2D uTexture;
-uniform vec4 uColor;
+#version 150
 
-varying vec2 texCoord;
-varying mat3 spriteMat;
+uniform sampler2DRect mainTex;
+uniform vec4 color;
+uniform vec2 textureResolution;
+uniform float gridPerSide;
+uniform float totalFrameCount;
+uniform float totalTimeMillis;
+uniform float startTime;
+uniform float frameOffset;
+uniform float time;
 
-float rand(vec2 co)
-{
-    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
-}
+in vec2 texCoordVarying;
 
-float pattern(vec2 uv)
-{
-    float s = sin(uAngle), c = cos(uAngle);
-
-    vec2 tex = uv * tSize - uCenter;
-    vec2 point = vec2( c * tex.x - s * tex.y, s * tex.x + c * tex.y ) * 10.0;
-
-    return ( sin( point.x ) * sin( point.y ) ) * uScale;
-}
+out vec4 outputColor;
 
 void main()
 {
-    vec3 uv = vec3(texCoord, 1.0);
+	vec2 uv = texCoordVarying;
+	uv.y = textureResolution.y - uv.y;
+	
+	float scale = 1.0 / gridPerSide;
 
-    uv *= spriteMat;
+	float totalDuration = totalTimeMillis * 0.001;
+	float currentTime = mod(time, totalDuration);
 
-    vec2 coord = uv.xy / uv.z;
-    vec4 sampleColor = texture2D(uTexture, coord);
+	float index = min(ceil(totalFrameCount * (currentTime / totalDuration)), totalFrameCount);
+	index += frameOffset;
 
-    if (sampleColor.a < 0.5)
-    {
-        discard;
-    }
+	uv.x *= scale;
+	uv.y *= scale;
 
-    // vec4 bgColor = texture2D(uBgTexture, vUv);
+	uv.x = uv.x + (textureResolution.x * scale) * mod(index, gridPerSide);
+	uv.y = uv.y + (textureResolution.y * scale) * floor(index / gridPerSide);
 
-    // if (bgColor.r + bgColor.g + bgColor.b == 3.0) {
-
-    //     bgColor = sampleColor;
-
-    // }
-
-    vec4 blendedColor = sampleColor * uColor;
-
-    vec4 outputColor = blendedColor;
-
-    if (uEnableDot > 0) {
-
-    outputColor = vec4( blendedColor.r + pattern(coord), blendedColor.g + pattern(coord), blendedColor.b + pattern(coord), blendedColor.a ) * uColor;
-
-}
-
-    if (uInvert == 0)
-    {
-        gl_FragColor = vec4(outputColor.r, outputColor.g, outputColor.b, 0.8);
-
-    }
-    else
-    {
-        vec4 col = vec4(vec3(1.0) - vec3(uColor.rgb), uColor.a);
-        blendedColor = sampleColor * col;
-        outputColor = vec4( blendedColor.r + pattern(coord), blendedColor.g + pattern(coord), blendedColor.b + pattern(coord), blendedColor.a ) * col;
-        gl_FragColor = outputColor;
-    }
-
+    outputColor = texture(mainTex, uv) * color;
 }

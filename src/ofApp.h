@@ -6,15 +6,17 @@
 
 #define MAX_WIDTH 4096.0
 #define DISPLAY_WIDTH 1024.0
+#define CELL_COUNT 5
 
 struct AnimationProps
 {
 public:
     float duration;
-    float currentTime;
-    float totalFrames;
-    float offset;
-    float index;
+    float maxDuration;
+    int totalFrames;
+    int offset;
+	int tweakedOffset;
+    int maxFrameCount;
     std::string name;
 };
 
@@ -27,7 +29,7 @@ public:
 
     void loadImage(const string &path, const int index);
     
-	void keyPressed(int key);
+	void keyReleased(int key);
     void dragEvent(ofDragInfo dragInfo);
     
     std::vector<ofImage> mImages;
@@ -44,6 +46,9 @@ public:
     std::vector<AnimationProps> mAnimationProps;
     
 private:
+
+	int mNumCells;
+	ofPlanePrimitive mPlane;
     
     static bool compareFilename(const string &first, const string &second)
     {
