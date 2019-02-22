@@ -6,7 +6,8 @@
 
 #define MAX_WIDTH 4096.0
 #define PREVIEW_SIZE 500.0
-#define CELL_COUNT 5
+#define PREVIEW_ANIMATION_SIZE 1000.0
+#define PREVIEW_CELL_COUNT 5
 
 struct AnimationProps
 {
@@ -24,15 +25,24 @@ class ofApp : public ofBaseApp
 {
 private:
 
-	std::vector<ofImage> mImages;
+	std::vector<std::vector<ofImage>> mImages;
+	std::vector<ofFbo> mSpriteAtlasFbos;
+	std::vector<std::string> mAnimationSpeeds;
 
 	int mOffset;
-	int mNumCells;
+	int mHorizontalFrameCount;
+	int mVerticalFrameCount;
+	int mPageCount;
 	float mFrameRate;
+	float mAnimationSpeed;
+	int mPageIndex;
 
 	ofFbo mFbo;
 	ofShader mShader;
 	ofPlanePrimitive mPlane;
+
+	ofRectangle mAnimationPreviewAreaBounds;
+	ofRectangle mSpriteAtlasPreviewAreaBounds;
 
 	ofxJSONElement mSpriteInfoJson;
 
@@ -43,7 +53,7 @@ private:
 	void update();
 	void draw();
 
-	void loadImagesFromDirectory(const string &path);
+	std::vector<ofImage> loadImagesFromDirectory(const string &path);
 	void createSpriteAtlas();
 	void exportResources();
 	void clear();

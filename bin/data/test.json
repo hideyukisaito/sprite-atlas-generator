@@ -1,0 +1,40 @@
+{
+   "animations" : [
+      {
+         "count" : 31,
+         "duration" : 1033.333251953125,
+         "name" : "1",
+         "offset" : 0
+      },
+      {
+         "count" : 39,
+         "duration" : 1300,
+         "name" : "2",
+         "offset" : 31
+      },
+      {
+         "count" : 34,
+         "duration" : 1133.333374023438,
+         "name" : "3",
+         "offset" : 70
+      },
+      {
+         "count" : 24,
+         "duration" : 800,
+         "name" : "4",
+         "offset" : 104
+      }
+   ],
+   "frame_count_per_side" : 12,
+   "frame_rate" : 30,
+   "frame_size" : {
+      "height" : 341.3333333333333,
+      "width" : 341.3333333333333
+   },
+   "size" : {
+      "height" : 4096,
+      "width" : 4096
+   },
+   "total" : 4
+}
+

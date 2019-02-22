@@ -10,15 +10,28 @@ void ofApp::setup()
     
     mShader.load("shaders/sprite_animation");
 
-	mPlane.set(ofGetHeight() / (float)CELL_COUNT, ofGetHeight() / (float)CELL_COUNT, 2, 2);
-	mPlane.mapTexCoords(0, 0, mFbo.getWidth(), mFbo.getHeight());
-    
-    mSpriteInfoJson["animations"] = Json::arrayValue;
+	mSpriteInfoJson["animations"] = Json::arrayValue;
     
     mOffset = 0;
     mFrameRate = 30.f;
+	mHorizontalFrameCount = 5;
+	mVerticalFrameCount = 4;
+	mPageCount = 3;
+	mPageIndex = 0;
+
+	mAnimationPreviewAreaBounds.set(0, 0, PREVIEW_ANIMATION_SIZE, PREVIEW_ANIMATION_SIZE);
+	mSpriteAtlasPreviewAreaBounds.set(1000, (ofGetHeight() - PREVIEW_SIZE), PREVIEW_SIZE, PREVIEW_SIZE);
     
     gui.setup();
+
+	mAnimationSpeeds.push_back("x0.5");
+	mAnimationSpeeds.push_back("x0.75");
+	mAnimationSpeeds.push_back("x1.0");
+	mAnimationSpeeds.push_back("x1.25");
+	mAnimationSpeeds.push_back("x1.5");
+	mAnimationSpeeds.push_back("x1.75");
+	mAnimationSpeeds.push_back("x2.0");
+	mAnimationSpeed = 1.f;
 }
 
 //--------------------------------------------------------------
@@ -38,10 +51,25 @@ void ofApp::draw()
 		ofDrawRectangle(1000, 0, 500, ofGetHeight());
 
 		ofSetColor(20, 20, 20, 255);
-		ofDrawRectangle(1000, (ofGetHeight() - PREVIEW_SIZE), PREVIEW_SIZE, PREVIEW_SIZE);
+		ofDrawRectangle(mSpriteAtlasPreviewAreaBounds.getX(),
+			mSpriteAtlasPreviewAreaBounds.getY(),
+			mSpriteAtlasPreviewAreaBounds.getWidth(),
+			mSpriteAtlasPreviewAreaBounds.getHeight());
 
 		ofSetColor(255, 255);
-		mFbo.draw(1000, (ofGetHeight() - PREVIEW_SIZE), PREVIEW_SIZE, PREVIEW_SIZE);
+
+		try
+		{
+			mSpriteAtlasFbos.at(mPageIndex).draw(
+				mSpriteAtlasPreviewAreaBounds.getX(),
+				mSpriteAtlasPreviewAreaBounds.getY(),
+				mSpriteAtlasPreviewAreaBounds.getWidth(),
+				mSpriteAtlasPreviewAreaBounds.getHeight());
+		}
+		catch (const exception &e)
+		{
+
+		}
 	}
 	ofPopStyle();
 
@@ -51,44 +79,27 @@ void ofApp::draw()
 
 	for (auto i = 0; i < animations_.size(); ++i)
 	{
-		ofPushStyle();
-		{
-			if (i % 2 == 0)
-			{
-				ofSetColor(50, 50, 50, 255);
-			}
-			else
-			{
-				ofSetColor(20, 20, 20, 255);
-			}
-
-			ofDrawRectangle((i % CELL_COUNT) * 200, std::floor((float)i / (float)CELL_COUNT) * 200, 200, 200);
-
-			ofSetColor(255, 255);
-			ofDrawBitmapString(
-				"name : " + animations_[i]["name"].asString(),
-				mPlane.getWidth() * (i % CELL_COUNT) + 20,
-				mPlane.getHeight() * std::floor((float)i / (float)CELL_COUNT) + 30);
-		}
-		ofPopStyle();
-
 		mShader.begin();
 		{
-			mShader.setUniformTexture("mainTex", mFbo, 0);
+			for (auto i = 0; i < mSpriteAtlasFbos.size(); ++i)
+			{
+				mShader.setUniformTexture("tex" + std::to_string(i), mSpriteAtlasFbos.at(i), i);
+			}
+
 			mShader.setUniform4f("color", ofFloatColor(1.0, 1.0, 1.0, 1.0));
-			mShader.setUniform2f("textureResolution", glm::vec2(mFbo.getWidth(), mFbo.getHeight()));
-			mShader.setUniform1f("gridPerSide", (float)mNumCells);
-			mShader.setUniform1f("totalFrameCount", animations_[i]["count"].asFloat());
-			mShader.setUniform1f("totalTimeMillis", animations_[i]["duration"].asFloat());
+			mShader.setUniform2f("textureResolution", glm::vec2(MAX_WIDTH, MAX_WIDTH));
+			mShader.setUniform1f("horizontalFrameCount", (float)mHorizontalFrameCount);
+			mShader.setUniform1f("verticalFrameCount", (float)mVerticalFrameCount);
+			mShader.setUniform1f("totalFrameCount", 60.f);
+			mShader.setUniform1f("totalTimeMillis", 2000.f);
 			mShader.setUniform1f("startTime", 0.0);
-			mShader.setUniform1f("frameOffset", animations_[i]["offset"].asFloat());
-			mShader.setUniform1f("time", time);
+			mShader.setUniform1f("time", time * mAnimationSpeed);
 
 			ofPushMatrix();
 			{
 				ofTranslate(
-					mPlane.getWidth() * (i % CELL_COUNT + 1) - mPlane.getWidth() * 0.5,
-					mPlane.getHeight() * std::floor((float)i / (float)CELL_COUNT) + mPlane.getHeight() * 0.5);
+					mAnimationPreviewAreaBounds.getWidth() * 0.5,
+					mAnimationPreviewAreaBounds.getHeight() * 0.5);
 
 				mPlane.draw();
 			}
@@ -102,6 +113,10 @@ void ofApp::draw()
 	ImGui::SetWindowSize(ImVec2(ofGetWidth() - 1000, ofGetHeight() - PREVIEW_SIZE));
 	ImGui::SetWindowPos(ImVec2(1000, 0));
 	ImGui::Text(ofToString("Sprite Size : " + ofToString(MAX_WIDTH) + " x " + ofToString(MAX_WIDTH)).c_str());
+	ImGui::InputInt("Horizontal Frame Count", &mHorizontalFrameCount, 1, 100);
+	ImGui::InputInt("Vertical Frame Count", &mVerticalFrameCount, 1, 100);
+	ImGui::InputInt("Page Count", &mPageCount, 1, 100);
+	ImGui::SliderInt("Page Number", &mPageIndex, 0, (int)mImages.size() - 1);
 	ImGui::Spacing();
 	ImGui::Text(ofToString("Animations : " + ofToString(animations_.size())).c_str());
 	ImGui::Text(
@@ -110,6 +125,40 @@ void ofApp::draw()
 			ofToString(std::round(mSpriteInfoJson["frame_size"]["width"].asFloat())) + 
 			" x " + 
 			ofToString(std::round(mSpriteInfoJson["frame_size"]["height"].asFloat()))).c_str());
+
+	int animSpeed_;
+
+	if (ofxImGui::VectorCombo("Speed", &animSpeed_, mAnimationSpeeds))
+	{
+		if (animSpeed_ == 0)
+		{
+			mAnimationSpeed = 0.5f;
+		}
+		else if (animSpeed_ == 1)
+		{
+			mAnimationSpeed = 0.75f;
+		}
+		else if (animSpeed_ == 2)
+		{
+			mAnimationSpeed = 1.0f;
+		}
+		else if (animSpeed_ == 3)
+		{
+			mAnimationSpeed = 1.25f;
+		}
+		else if (animSpeed_ == 4)
+		{
+			mAnimationSpeed = 1.5f;
+		}
+		else if (animSpeed_ == 5)
+		{
+			mAnimationSpeed = 1.75f;
+		}
+		else if (animSpeed_ == 6)
+		{
+			mAnimationSpeed = 2.0f;
+		}
+	}
 
 	if (ImGui::Button("Clear"))
 	{
@@ -125,13 +174,12 @@ void ofApp::draw()
 }
 
 //--------------------------------------------------------------
-void ofApp::loadImagesFromDirectory(const string &path)
+std::vector<ofImage> ofApp::loadImagesFromDirectory(const string &path)
 {
 	const ofFile f_(path);
 	const auto name_ = f_.getFileName();
 
 	ofDirectory dir_(f_.getAbsolutePath());
-	dir_.allowExt("png");
 	dir_.listDir();
 	dir_.sort();
 	
@@ -144,6 +192,10 @@ void ofApp::loadImagesFromDirectory(const string &path)
 	mSpriteInfoJson["animations"][index]["duration"] = ((float)dir_.getFiles().size() / mFrameRate) * 1000.f;
 
 	const auto &files_ = dir_.getFiles();
+	ofLog() << "Load " << files_.size() << " images from " << dir_.getAbsolutePath();
+
+	auto images_ = std::vector<ofImage>();
+	ofImage image_;
 
 	for (auto &file_ : files_)
 	{
@@ -153,85 +205,146 @@ void ofApp::loadImagesFromDirectory(const string &path)
 			continue;
 		}
 
-		ofImage _image;
-		_image.load(file_.getAbsolutePath());
+		if (image_.load(file_.getAbsolutePath()))
+		{
+			images_.push_back(image_);
 
-		mImages.push_back(_image);
+			image_.clear();
 
-		++mOffset;
+			++mOffset;
+		}
+		else
+		{
+			ofLogError() << "Failed to load image from " + file_.getAbsolutePath();
+		}
 	}
+
+	return images_;
 }
 
 //--------------------------------------------------------------
 void ofApp::createSpriteAtlas()
 {
-	mNumCells = (int)std::ceil(std::sqrt(mImages.size()));
-	const auto cellSize_ = MAX_WIDTH / mNumCells;
+	const auto frameWidth_ = MAX_WIDTH / (float)mHorizontalFrameCount;
+	const auto frameHeight = MAX_WIDTH / (float)mVerticalFrameCount;
 
 	mSpriteInfoJson["total"] = mSpriteInfoJson["animations"].size();
 	mSpriteInfoJson["frame_rate"] = mFrameRate;
-	mSpriteInfoJson["frame_count_per_side"] = mNumCells;
-	mSpriteInfoJson["frame_size"]["width"] = cellSize_;
-	mSpriteInfoJson["frame_size"]["height"] = cellSize_;
+	mSpriteInfoJson["horizontal_frame_count"] = mHorizontalFrameCount;
+	mSpriteInfoJson["vertical_frame_count"] = mVerticalFrameCount;
+	mSpriteInfoJson["frame_size"]["width"] = frameWidth_;
+	mSpriteInfoJson["frame_size"]["height"] = frameHeight;
 	mSpriteInfoJson["size"]["width"] = (int)MAX_WIDTH;
 	mSpriteInfoJson["size"]["height"] = (int)MAX_WIDTH;
 
-	mFbo.begin();
+	mPlane.set(frameWidth_, frameHeight, 2, 2);
+	mPlane.mapTexCoords(0, 0, 4096, 4096);
+
+	mSpriteAtlasFbos.clear();
+
+	for (auto &images_ : mImages)
 	{
-		ofClear(0, 0, 0, 0);
+		mSpriteAtlasFbos.push_back(ofFbo());
+		auto &fbo_ = mSpriteAtlasFbos.back();
 
-		ofImage image_;
+		fbo_.allocate((int)MAX_WIDTH, (int)MAX_WIDTH, GL_RGBA, 4);
 
-		for (auto i = 0; i < mImages.size(); ++i)
+		fbo_.begin();
 		{
-			image_ = mImages.at(i);
+			ofClear(0, 0, 0, 0);
 
-			const auto w_ = image_.getWidth();
-			const auto h_ = image_.getHeight();
+			int count_ = std::min(mHorizontalFrameCount * mVerticalFrameCount, (int)images_.size());
 
-			const auto horizontalIndex_ = i % (int)mNumCells;
-			const auto verticalIndex_ = (int)std::floor((float)i / (float)mNumCells);
+			for (auto i = 0; i < count_; ++i)
+			{
+				try
+				{
+					auto &image_ = images_.at(i);
 
-			auto ratio_ = w_ < h_ ? cellSize_ / h_ : cellSize_ / w_;
+					const auto w_ = image_.getWidth();
+					const auto h_ = image_.getHeight();
 
-			image_.resize(w_ * ratio_, h_ * ratio_);
-			image_.update();
+					const auto horizontalIndex_ = i % mHorizontalFrameCount;
+					const auto verticalIndex_ = (int)std::floor((float)i / (float)mHorizontalFrameCount);
 
-			image_.draw(
-				((cellSize_ - image_.getWidth()) * 0.5) + (cellSize_ * horizontalIndex_),
-				((cellSize_ - image_.getHeight()) * 0.5) + (cellSize_ * verticalIndex_));
+					auto ratio_ = w_ < h_ ? frameHeight / h_ : frameWidth_ / w_;
+
+					image_.resize(w_ * ratio_, h_ * ratio_);
+					image_.update();
+
+					image_.draw(
+						((frameWidth_ - image_.getWidth()) * 0.5) + (frameWidth_ * horizontalIndex_),
+						((frameHeight - image_.getHeight()) * 0.5) + (frameHeight * verticalIndex_));
+				}
+				catch (const exception &e)
+				{
+					ofLogError() << e.what();
+				}
+			}
 		}
+		fbo_.end();
 	}
-	mFbo.end();
 }
 
 //--------------------------------------------------------------
 void ofApp::exportResources()
 {
 	ofImage img_;
-	mFbo.readToPixels(img_.getPixels());
-
+	auto page_ = 1;
 	auto timestamp_ = ofGetTimestampString();
-	auto prefix_ = "export/";
-	img_.save(ofToDataPath(prefix_ + timestamp_ + ".png"));
+	auto prefix_ = "export/" + timestamp_ + "/";
+	std::string path_ = "";
 
-	mSpriteInfoJson["filename"] = timestamp_ + ".png";
-	mSpriteInfoJson.save(ofToDataPath(prefix_ + timestamp_ + ".json"), true);
+	mSpriteInfoJson["pages"] = Json::arrayValue;
+
+	for (auto &fbo_ : mSpriteAtlasFbos)
+	{
+		fbo_.readToPixels(img_.getPixels());
+
+		std::stringstream ss_;
+		ss_ << prefix_;
+		ss_ << "page-";
+		ss_ << page_;
+		ss_ << ".png";
+
+		path_ = ofToDataPath(ss_.str());
+
+		if (img_.save(path_))
+		{
+			mSpriteInfoJson["pages"][page_ - 1] = path_;
+			++page_;
+		}
+
+		img_.clear();
+		ss_.clear();
+	}
+
+	mSpriteInfoJson.save(ofToDataPath(prefix_ + "animation.json"), true);
 }
 
 //--------------------------------------------------------------
 void ofApp::clear()
 {
-	for (auto &image : mImages)
+	for (auto &images_ : mImages)
 	{
-		image.clear();
+		for (auto &image_ : images_)
+		{
+			image_.clear();
+		}
+
+		images_.clear();
 	}
+
 	mImages.clear();
 
-	mSpriteInfoJson["animations"].clear();
-	mSpriteInfoJson["total"] = 0;
-	mSpriteInfoJson["frame_size"]["width"] = 0;
-	mSpriteInfoJson["frame_size"]["height"] = 0;
+	for (auto &fbo_ : mSpriteAtlasFbos)
+	{
+		fbo_.clear();
+	}
+
+	mSpriteAtlasFbos.clear();
+
+	mSpriteInfoJson["animations"] = Json::arrayValue;
 }
 
 //--------------------------------------------------------------
@@ -257,6 +370,13 @@ void ofApp::dragEvent(ofDragInfo dragInfo)
         return;
     }
 
+	for (auto &images_ : mImages)
+	{
+		images_.clear();
+	}
+
+	mImages.clear();
+
 	for (auto &file_ : dragInfo.files)
 	{
 		ofFile f_(file_);
@@ -266,8 +386,15 @@ void ofApp::dragEvent(ofDragInfo dragInfo)
 			ofLogError() << f_.getFileName() << " is not directory.";
 			continue;
 		}
-		
-		loadImagesFromDirectory(f_.getAbsolutePath());
+
+		mImages.push_back(loadImagesFromDirectory(f_.getAbsolutePath()));
+	}
+
+	ofLog() << "Page count : " << mImages.size();
+
+	for (auto i = 0; i < mImages.size(); ++i)
+	{
+		ofLog() << "Image count in page " << (i + 1) << " : " << mImages.at(i).size();
 	}
 
 	createSpriteAtlas();
