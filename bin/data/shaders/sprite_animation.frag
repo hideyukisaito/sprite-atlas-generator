@@ -10,7 +10,7 @@ uniform float gridPerSide;
 uniform float horizontalFrameCount;
 uniform float verticalFrameCount;
 uniform float totalFrameCount;
-uniform float totalTimeMillis;
+uniform float durationInSeconds;
 uniform float startTime;
 uniform float frameOffset;
 uniform float time;
@@ -27,10 +27,9 @@ void main()
 	float scaleX = 1.0 / horizontalFrameCount;
 	float scaleY = 1.0 / verticalFrameCount;
 
-	float totalDuration = totalTimeMillis * 0.001;
-	float currentTime = mod(time, totalDuration);
+	float currentTime = mod(time, durationInSeconds);
 
-	float ratio = currentTime / 2.0;
+	float ratio = currentTime / durationInSeconds;
 	float index = max(0.0, min(floor(totalFrameCount * ratio), totalFrameCount));
 
 	uv.x *= scaleX;

@@ -44,7 +44,7 @@ private:
 	ofRectangle mAnimationPreviewAreaBounds;
 	ofRectangle mSpriteAtlasPreviewAreaBounds;
 
-	ofxJSONElement mSpriteInfoJson;
+	ofxJSONElement mJson;
 
 	ofxImGui::Gui gui;
 	std::vector<AnimationProps> mAnimationProps;
@@ -57,6 +57,7 @@ private:
 	void createSpriteAtlas();
 	void exportResources();
 	void clear();
+	void clearImages();
 
 	void keyReleased(int key);
 	void dragEvent(ofDragInfo dragInfo);

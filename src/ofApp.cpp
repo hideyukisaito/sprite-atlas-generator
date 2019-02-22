@@ -9,8 +9,6 @@ void ofApp::setup()
     mFbo.allocate(static_cast<int>(MAX_WIDTH), static_cast<int>(MAX_WIDTH), GL_RGBA, 4);
     
     mShader.load("shaders/sprite_animation");
-
-	mSpriteInfoJson["animations"] = Json::arrayValue;
     
     mOffset = 0;
     mFrameRate = 30.f;
@@ -56,6 +54,13 @@ void ofApp::draw()
 			mSpriteAtlasPreviewAreaBounds.getWidth(),
 			mSpriteAtlasPreviewAreaBounds.getHeight());
 
+	}
+	ofPopStyle();
+
+	auto time = ofGetElapsedTimef();
+
+	if (!mSpriteAtlasFbos.empty())
+	{
 		ofSetColor(255, 255);
 
 		try
@@ -70,15 +75,7 @@ void ofApp::draw()
 		{
 
 		}
-	}
-	ofPopStyle();
 
-	auto time = ofGetElapsedTimef();
-
-	const auto &animations_ = mSpriteInfoJson["animations"];
-
-	for (auto i = 0; i < animations_.size(); ++i)
-	{
 		mShader.begin();
 		{
 			for (auto i = 0; i < mSpriteAtlasFbos.size(); ++i)
@@ -90,10 +87,10 @@ void ofApp::draw()
 			mShader.setUniform2f("textureResolution", glm::vec2(MAX_WIDTH, MAX_WIDTH));
 			mShader.setUniform1f("horizontalFrameCount", (float)mHorizontalFrameCount);
 			mShader.setUniform1f("verticalFrameCount", (float)mVerticalFrameCount);
-			mShader.setUniform1f("totalFrameCount", 60.f);
-			mShader.setUniform1f("totalTimeMillis", 2000.f);
+			mShader.setUniform1f("totalFrameCount", mJson["total_frame_count"].asFloat());
+			mShader.setUniform1f("durationInSeconds", mJson["duration_in_seconds"].asFloat());
 			mShader.setUniform1f("startTime", 0.0);
-			mShader.setUniform1f("time", time * mAnimationSpeed);
+			mShader.setUniform1f("time", time);
 
 			ofPushMatrix();
 			{
@@ -112,19 +109,22 @@ void ofApp::draw()
 
 	ImGui::SetWindowSize(ImVec2(ofGetWidth() - 1000, ofGetHeight() - PREVIEW_SIZE));
 	ImGui::SetWindowPos(ImVec2(1000, 0));
-	ImGui::Text(ofToString("Sprite Size : " + ofToString(MAX_WIDTH) + " x " + ofToString(MAX_WIDTH)).c_str());
-	ImGui::InputInt("Horizontal Frame Count", &mHorizontalFrameCount, 1, 100);
-	ImGui::InputInt("Vertical Frame Count", &mVerticalFrameCount, 1, 100);
-	ImGui::InputInt("Page Count", &mPageCount, 1, 100);
-	ImGui::SliderInt("Page Number", &mPageIndex, 0, (int)mImages.size() - 1);
-	ImGui::Spacing();
-	ImGui::Text(ofToString("Animations : " + ofToString(animations_.size())).c_str());
+	ImGui::Text(ofToString("Sprite Dimension : " + ofToString(MAX_WIDTH) + " x " + ofToString(MAX_WIDTH)).c_str());
+	ImGui::Text(ofToString("Total Pages : " + ofToString(mSpriteAtlasFbos.size())).c_str());
+	ImGui::Text(ofToString("Total Frames : " + mJson["total_frame_count"].asString()).c_str());
+	ImGui::Text(ofToString("Total Duration (Sec.) : " + mJson["duration_in_seconds"].asString()).c_str());
 	ImGui::Text(
 		ofToString(
-			"Size Per Animations : " + 
-			ofToString(std::round(mSpriteInfoJson["frame_size"]["width"].asFloat())) + 
-			" x " + 
-			ofToString(std::round(mSpriteInfoJson["frame_size"]["height"].asFloat()))).c_str());
+			"Frame Dimension : " +
+			ofToString(std::round(mJson["frame_size"]["width"].asFloat())) +
+			" x " +
+			ofToString(std::round(mJson["frame_size"]["height"].asFloat()))).c_str());
+
+	ImGui::Spacing();
+	ImGui::InputInt("Horizontal Frame Count", &mHorizontalFrameCount, 1, 100);
+	ImGui::InputInt("Vertical Frame Count", &mVerticalFrameCount, 1, 100);
+	ImGui::SliderInt("Page Number", &mPageIndex, 0, (int)mSpriteAtlasFbos.size() - 1);
+	ImGui::Spacing();
 
 	int animSpeed_;
 
@@ -183,14 +183,6 @@ std::vector<ofImage> ofApp::loadImagesFromDirectory(const string &path)
 	dir_.listDir();
 	dir_.sort();
 	
-	mSpriteInfoJson["animations"].append(Json::objectValue);
-
-	const auto index = mSpriteInfoJson["animations"].size() - 1;
-	mSpriteInfoJson["animations"][index]["name"] = name_;
-	mSpriteInfoJson["animations"][index]["count"] = dir_.getFiles().size();
-	mSpriteInfoJson["animations"][index]["offset"] = mOffset;
-	mSpriteInfoJson["animations"][index]["duration"] = ((float)dir_.getFiles().size() / mFrameRate) * 1000.f;
-
 	const auto &files_ = dir_.getFiles();
 	ofLog() << "Load " << files_.size() << " images from " << dir_.getAbsolutePath();
 
@@ -228,19 +220,20 @@ void ofApp::createSpriteAtlas()
 	const auto frameWidth_ = MAX_WIDTH / (float)mHorizontalFrameCount;
 	const auto frameHeight = MAX_WIDTH / (float)mVerticalFrameCount;
 
-	mSpriteInfoJson["total"] = mSpriteInfoJson["animations"].size();
-	mSpriteInfoJson["frame_rate"] = mFrameRate;
-	mSpriteInfoJson["horizontal_frame_count"] = mHorizontalFrameCount;
-	mSpriteInfoJson["vertical_frame_count"] = mVerticalFrameCount;
-	mSpriteInfoJson["frame_size"]["width"] = frameWidth_;
-	mSpriteInfoJson["frame_size"]["height"] = frameHeight;
-	mSpriteInfoJson["size"]["width"] = (int)MAX_WIDTH;
-	mSpriteInfoJson["size"]["height"] = (int)MAX_WIDTH;
+	mJson["frame_rate"] = mFrameRate;
+	mJson["horizontal_frame_count"] = mHorizontalFrameCount;
+	mJson["vertical_frame_count"] = mVerticalFrameCount;
+	mJson["frame_size"]["width"] = frameWidth_;
+	mJson["frame_size"]["height"] = frameHeight;
+	mJson["size"]["width"] = (int)MAX_WIDTH;
+	mJson["size"]["height"] = (int)MAX_WIDTH;
 
 	mPlane.set(frameWidth_, frameHeight, 2, 2);
 	mPlane.mapTexCoords(0, 0, 4096, 4096);
 
 	mSpriteAtlasFbos.clear();
+
+	auto totalFrames_ = 0;
 
 	for (auto &images_ : mImages)
 	{
@@ -254,6 +247,7 @@ void ofApp::createSpriteAtlas()
 			ofClear(0, 0, 0, 0);
 
 			int count_ = std::min(mHorizontalFrameCount * mVerticalFrameCount, (int)images_.size());
+			totalFrames_ += count_;
 
 			for (auto i = 0; i < count_; ++i)
 			{
@@ -284,6 +278,9 @@ void ofApp::createSpriteAtlas()
 		}
 		fbo_.end();
 	}
+
+	mJson["total_frame_count"] = totalFrames_;
+	mJson["duration_in_seconds"] = (float)totalFrames_ / mFrameRate;
 }
 
 //--------------------------------------------------------------
@@ -295,7 +292,7 @@ void ofApp::exportResources()
 	auto prefix_ = "export/" + timestamp_ + "/";
 	std::string path_ = "";
 
-	mSpriteInfoJson["pages"] = Json::arrayValue;
+	mJson["pages"] = Json::arrayValue;
 
 	for (auto &fbo_ : mSpriteAtlasFbos)
 	{
@@ -311,7 +308,7 @@ void ofApp::exportResources()
 
 		if (img_.save(path_))
 		{
-			mSpriteInfoJson["pages"][page_ - 1] = path_;
+			mJson["pages"][page_ - 1] = path_;
 			++page_;
 		}
 
@@ -319,11 +316,24 @@ void ofApp::exportResources()
 		ss_.clear();
 	}
 
-	mSpriteInfoJson.save(ofToDataPath(prefix_ + "animation.json"), true);
+	mJson.save(ofToDataPath(prefix_ + "animation.json"), true);
 }
 
 //--------------------------------------------------------------
 void ofApp::clear()
+{
+	clearImages();
+
+	for (auto &fbo_ : mSpriteAtlasFbos)
+	{
+		fbo_.clear();
+	}
+
+	mSpriteAtlasFbos.clear();
+}
+
+//--------------------------------------------------------------
+void ofApp::clearImages()
 {
 	for (auto &images_ : mImages)
 	{
@@ -336,15 +346,6 @@ void ofApp::clear()
 	}
 
 	mImages.clear();
-
-	for (auto &fbo_ : mSpriteAtlasFbos)
-	{
-		fbo_.clear();
-	}
-
-	mSpriteAtlasFbos.clear();
-
-	mSpriteInfoJson["animations"] = Json::arrayValue;
 }
 
 //--------------------------------------------------------------
@@ -370,12 +371,7 @@ void ofApp::dragEvent(ofDragInfo dragInfo)
         return;
     }
 
-	for (auto &images_ : mImages)
-	{
-		images_.clear();
-	}
-
-	mImages.clear();
+	clearImages();
 
 	for (auto &file_ : dragInfo.files)
 	{
@@ -398,4 +394,6 @@ void ofApp::dragEvent(ofDragInfo dragInfo)
 	}
 
 	createSpriteAtlas();
+
+	clearImages();
 }
